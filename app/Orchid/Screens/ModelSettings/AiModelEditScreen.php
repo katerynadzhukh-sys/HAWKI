@@ -64,11 +64,11 @@ class AiModelEditScreen extends Screen
     {
         $queryParams = request()->only(['provider_filter', 'active_status', 'visible_status', 'search', 'date_range']);
         $backUrl = route('platform.models.language');
-        
+
         if (!empty($queryParams)) {
             $backUrl .= '?' . http_build_query($queryParams);
         }
-        
+
         return [
             Link::make('Back')
                 ->href($backUrl)
@@ -122,11 +122,12 @@ class AiModelEditScreen extends Screen
                 'model.settings.tools.file_upload' => 'nullable|boolean',
                 'model.settings.tools.vision' => 'nullable|boolean',
                 'model.settings.tools.web_search' => 'nullable|boolean',
+                'model.settings.tools.image_gen' => 'nullable|boolean',
             ]);
 
             // Get current settings and merge with tools from UI
             $settings = $this->model->settings ?? [];
-            
+
             // Merge tools from UI checkboxes into settings
             $modelData = $request->get('model', []);
             if (isset($modelData['settings']['tools'])) {

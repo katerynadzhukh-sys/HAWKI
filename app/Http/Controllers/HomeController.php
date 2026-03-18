@@ -70,42 +70,42 @@ class HomeController extends Controller
                 $room->room_icon = $room->room_icon
                     ? $avatarStorage->getUrl($room->room_icon, 'room_avatars')
                     : null;
-                
+
                 // Get the member object for this user in this room
                 $member = $room->members()->where('user_id', $user->id)->first();
                 $room->hasUnreadMessages = $member ? $room->hasUnreadMessagesFor($member) : false;
-                
+
                 // Check if member is removed
                 $room->isRemoved = $room->pivot->isRemoved ?? false;
-                
+
                 // Check if this is a new room (invitation still exists = not accepted)
                 $invitation = $user->invitations()->where('room_id', $room->id)->first();
                 $room->isNewRoom = $invitation !== null;
-                
+
                 return $room;
             })->concat(
                 // Add rooms with pending invitations (where user is not yet a member)
                 $user->invitations()->with('room')->get()->map(function ($invitation) use ($avatarStorage, $user) {
                     $room = $invitation->room;
-                    
+
                     // Check if user is already a member - if so, skip this invitation
                     if ($room->isMember($user->id)) {
                         return null;
                     }
-                    
+
                     $room->room_icon = $room->room_icon
                         ? $avatarStorage->getUrl($room->room_icon, 'room_avatars')
                         : null;
                     $room->hasUnreadMessages = false;
                     $room->isNewRoom = true;  // Always true for invitations
-                    
+
                     // Try to get the first non-HAWKI member as inviter (heuristic)
                     $inviter = $room->members()
                         ->where('user_id', '!=', 1)  // Exclude HAWKI
                         ->with('user')
                         ->first();
                     $room->invited_by = $inviter ? $inviter->user->name : 'Unknown';
-                    
+
                     return $room;
                 })->filter()  // Remove null entries (where user is already member)
             ),
@@ -137,6 +137,7 @@ class HomeController extends Controller
         $models = $this->aiService->getAvailableModels()->toArray();
         $webSearchAvailable = false;
         $reasoningAvailable = false;
+        $imageGenerationAvailable = false;
 
         foreach ($models['models'] as $model) {
             if (!empty($model['tools']['web_search'])) {
@@ -145,9 +146,12 @@ class HomeController extends Controller
             if (!empty($model['tools']['reasoning'])) {
                 $reasoningAvailable = true;
             }
-            
-            // Early exit if both are found
-            if ($webSearchAvailable && $reasoningAvailable) {
+            if (!empty($model['tools']['image_gen'])) {
+                $imageGenerationAvailable = true;
+            }
+
+            // Early exit if all are found
+            if ($webSearchAvailable && $reasoningAvailable && $imageGenerationAvailable) {
                 break;
             }
         }
@@ -169,6 +173,7 @@ class HomeController extends Controller
                             'models',
                             'webSearchAvailable',
                             'reasoningAvailable',
+                            'imageGenerationAvailable',
                             'announcements',
                             'announcementService',
                             'converterActive',
