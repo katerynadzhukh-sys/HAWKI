@@ -58,7 +58,8 @@ abstract class AbstractRequest
 
         // Initialize cURL
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $apiUrl ?? $model->getProvider()->getConfig()->getStreamUrl());
+        $requestUrl = $apiUrl ?? $model->getProvider()->getConfig()->getStreamUrl();
+        curl_setopt($ch, CURLOPT_URL, $requestUrl);
 
         // Set common cURL options
         $headers = is_callable($getHttpHeaders) ? $getHttpHeaders($model) : $this->getHttpHeaders($model);
@@ -72,6 +73,11 @@ abstract class AbstractRequest
             }
             $onData($chunkToResponse($model, $chunk));
         });
+
+        \Log::info('[CURL REQUEST] Streaming request started', [
+            'url' => $requestUrl,
+            'payload' => $payload,
+        ]);
 
         // Execute the cURL session
         curl_exec($ch);
@@ -110,10 +116,16 @@ abstract class AbstractRequest
 
         // Initialize cURL
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $apiUrl ?? $model->getProvider()->getConfig()->getApiUrl());
+        $requestUrl = $apiUrl ?? $model->getProvider()->getConfig()->getApiUrl();
+        curl_setopt($ch, CURLOPT_URL, $requestUrl);
         // Set common cURL options
         $headers = is_callable($getHttpHeaders) ? $getHttpHeaders($model) : $this->getHttpHeaders($model);
         $this->setCommonCurlOptions($ch, $payload, $headers);
+
+        \Log::info('[CURL REQUEST] Non-streaming request started', [
+            'url' => $requestUrl,
+            'payload' => $payload,
+        ]);
         
         // Execute the request
         $response = curl_exec($ch);
